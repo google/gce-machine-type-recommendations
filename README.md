@@ -81,9 +81,13 @@ gcloud functions deploy autosizingfct \
 When a machine-type recommendation(s) appears for your labeled VM instance in the GCP console, you can trigger the Cloud Scheduler job manually (or wait for it to be triggered on schedule) and check if the machine-type recommendation(s) gets applied automatically to all labeled VMs that are withing the GCP zone configured in the cron job message body.
 
 
+# Important considerations
 
-
-
+- This solution relies on the GCP machine type recommendations. The latter has a few limitations.
+- The approach described above is meant to be used as-is and it has not been tested in a large GCP environment with a lot of VMs.
+- It should not be used in a production environment.
+- The scope of this solution is standalone VMs. For GCE instances in a managed instance group, we recommend following GCP best practices.
+- Sometimes the GCP machine type recommendation may recommend using a custom machine type, we only use the standard machine type in this approach.
 
 
   
