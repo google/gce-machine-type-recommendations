@@ -22,7 +22,7 @@ Before you get started you :
 # How to use this solution
 
 
-1. Creating GCE instances if they don't already exist
+**1. Creating GCE instances if they don't already exist**
 
 - You need to have at least one VM (or more) in your project that has machine-type recommendations shown in the UI. 
 
@@ -44,14 +44,14 @@ gcloud compute instances create test-instance-2 --zone=us-central1-a --machine-t
   
   
   
-  2) Create a Pub/Sub topic
+  **2. Create a Pub/Sub topic**
 
 Create a Pub/Sub topic (e.g gce-sizing-recommendations-topic) as follow:
 ```
 gcloud pubsub topics create gce-sizing-recommendations-topic
 ```
   
-  3). Create a Cloud Scheduler cron job 
+ **3. Create a Cloud Scheduler cron job** 
   
 Create a cron job that will push a message to a Pub/Sub topic each time it is triggered.
   ```
@@ -60,12 +60,18 @@ Create a cron job that will push a message to a Pub/Sub topic each time it is tr
     --schedule="0 4 * * *" \
     --topic="gce-sizing-recommendations-topic" \
     --message-body=`{zone:"us-central1-a", label:"autosize=true"}`
+    
+      gcloud scheduler jobs create pubsub gce-recommendations-job \
+    --location=us-central1 \
+    --schedule="0 4 * * *" \
+    --topic="gce-sizing-recommendations-topic" \
+    --message-body="{zone:us-central1-a, labelKey:autosize, labelValue:true}"
   ```
 The cron job created above will run on a once per day at 4:00am, and it has the following message body:
 **{"zone":"us-central1-a", "label":"autosize=true"}**
 You can change the schedule based on your own needs.
 
-4) Deploy the Cloud Function (2nd generation)
+**4. Deploy the Cloud Function (2nd generation)**
 
 - clone the code of this repo
 - go to the main directory `cd gce-machine-type-recommendations/`
@@ -79,9 +85,9 @@ gcloud functions deploy autosizingfct \
        --trigger-topic=gce-sizing-recommendations-topic
 ```
 
-5) Testing the whole setup
+**5. Testing the whole setup**
 
-When a machine-type recommendation(s) appears for your labeled VM instance in the GCP console, you can trigger the Cloud Scheduler job manually (or wait for it to be triggered on schedule) and check if the machine-type recommendation(s) gets applied automatically to all labeled VMs that are withing the GCP zone configured in the cron job message body.
+When machine-type recommendation(s) appears for your labeled VM instance in the GCP console, you can trigger the Cloud Scheduler job manually (or wait for it to be triggered on schedule) and check if the machine-type recommendation(s) gets applied automatically to all labeled VMs that are withing the GCP zone configured in the cron job message body.
 
 
 # Important considerations
