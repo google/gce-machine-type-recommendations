@@ -1,14 +1,14 @@
 # Introduction
-This tutorial explains a cost-effective and serverless approach for automating the process of applying machine type recommendations 
+This tutorial explains a cost-effective and serverless approach for automating the process of applying machine-type recommendations 
 to specific GCE instances (using label).
 ```
-By automatically applying machine type recommendations GCP customers can save money 
-while also saving time of having to do this task manually for each GCE instance.
+By automatically applying machine-type recommendations GCP customers can save money 
+while also saving time for having to do this task manually for each GCE instance.
 ```
 
-In this tutorial we will makes use of the following GCP services:
+In this tutorial we will make use of the following GCP services:
 - Cloud Scheduler
-- Pup/Sub
+- Pub/Sub
 - Cloud Functions (2nd generation)
 - Google Compute Engine (GCE)
 
@@ -21,11 +21,11 @@ Before you get started you :
 
 1. Creating GCE instances if they don't already exist
 
-- You need to have a at least one VM (or more) in your project that has machine-type recommendation shown in the UI. 
+- You need to have at least one VM (or more) in your project that has machine-type recommendations shown in the UI. 
 
-In this case choose the VMs for which you want to apply the machine-type recommendation automatically by labeling them (for example label:autosize=true). In the future, applying label can be enforced during the creation of the VM instances through Ifranstructurre-as-Code (IaC).
+In this case choose the VMs for which you want to apply the machine-type recommendation automatically by labeling them (for example label:autosize=true). In the future, applying labels can be enforced during the creation of the VM instances through Infrastructure-as-Code (IaC).
 
-- I you don't already have VMs with machine-type recommendations, you can create one or more small (oversized) VMs and let them run "idle" for a while until the machine-type recommendation(s) is visible in the UI.
+- If you don't already have VMs with machine-type recommendations, you can create one or more small (oversized) VMs and let them run "idle" for a while until the machine-type recommendation(s) is visible in the UI.
 
 - In our case, we will create two VMs test-instance-1 and test-instance-2 in the GCP zone us-central1-a and we will add a label **auto-size=true** to the test-instance-1.
 
@@ -50,13 +50,40 @@ gcloud pubsub topics create gce-sizing-recommendations-topic
   
   3). Create a Cloud Scheduler cron job 
   
+Create a cron job that will push a message to a Pub/Sub topic each time it is triggered.
+  ```
   gcloud scheduler jobs create pubsub gce-recommendations-job \
     --location=us-central1 \
     --schedule="0 4 * * *" \
     --topic="gce-sizing-recommendations-topic" \
     --message-body=`{zone:"us-central1-a", label:"autosize=true"}`
-  
-As you can see, we have created cron job will run on a regular basis once per day day at 4:00am, and it has the following message body:
+  ```
+The cron job created above will run on a once per day at 4:00am, and it has the following message body:
 **{"zone":"us-central1-a", "label":"autosize=true"}**
+You can change the schedule based on your own needs.
+
+4) Deploy the Cloud Function (2nd generation)
+
+- clone the code of this repo
+- go to the main directory `cd gce-machine-type-recommendations/`
+- deploy the Cloud Function as follow: 
+```
+gcloud functions deploy autosizingfct \
+       --gen2 \
+       --region=europe-west4 \
+       --runtime=nodejs14 \
+       --entry-point=applySizingRecommendationsFct \
+       --trigger-topic=gce-sizing-recommendations-topic
+```
+
+5) Testing the whole setup
+
+When a machine-type recommendation(s) appears for your labeled VM instance in the GCP console, you can trigger the Cloud Scheduler job manually (or wait for it to be triggered on schedule) and check if the machine-type recommendation(s) gets applied automatically to all labeled VMs that are withing the GCP zone configured in the cron job message body.
+
+
+
+
+
+
 
   
