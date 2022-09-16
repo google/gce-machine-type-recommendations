@@ -44,7 +44,9 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
 
     // extracting the attributes from the payload 
     var zone = payload.zone;
-    const label = payload.label;
+    const labelKey = payload.labelKey;
+    const labelValue = payload.labelValue;
+    const label = labelKey+"="+labelValue;
 
     // get the current GCP project Id
     const projectId = await instancesClient.getProjectId();
@@ -293,8 +295,12 @@ const _validatePayload = event => {
   } catch (err) {
     throw new Error('Invalid Pub/Sub message: ' + err);
   }
-  if (!payload.label) {
-    throw new Error("Attribute 'label' missing from payload");
+  if (!payload.labelKey) {
+    throw new Error("Attribute 'labelKey' missing from payload");
+  }
+
+  if (!payload.labelValue) {
+    throw new Error("Attribute 'labelValue' missing from payload");
   }
 
   if (!payload.zone) {
