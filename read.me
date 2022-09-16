@@ -1,0 +1,6 @@
+gcloud functions deploy gceAutoSizingFct \
+--gen2 \
+--region=europe-west4 \
+--runtime=nodejs14 \
+--entry-point=applySizingRecommendationsFct \
+--trigger-topic=gce-sizing-recommendations-topic
