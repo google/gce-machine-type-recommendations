@@ -55,11 +55,11 @@ gcloud pubsub topics create gce-sizing-recommendations-topic
   
 Create a cron job that will push a message to a Pub/Sub topic each time it is triggered.
   ```
-  gcloud scheduler jobs create pubsub gce-recommendations-job-1 \
+    gcloud scheduler jobs create pubsub gce-recommendations-job-2 \
     --location=us-central1 \
     --schedule="0 4 * * *" \
     --topic="gce-sizing-recommendations-topic" \
-    --message-body='{\"zone\":\"us-central1-a\", \"label\":"autosize=true\"}'
+    --message-body='{"zone":"us-central1-a", "label":"autosize=true"}'
   ```
 The cron job created above will run on a once per day at 4:00am, and it has the following message body:
 **{"zone":"us-central1-a", "label":"autosize=true"}**
