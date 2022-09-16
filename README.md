@@ -1,7 +1,6 @@
 # Introduction
 This tutorial explains a cost-effective and serverless approach for automating the process of applying machine-type recommendations 
-to specific GCE instances (using label).
-
+to specific GCE instances.
 
 The key idea is to regularly check if GCE machine type recommendations are available and apply them to the Compute Engine instances(VMs) that have a specific label.
 
