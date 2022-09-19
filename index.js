@@ -39,14 +39,14 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
 
   try {
 
-    // check if the event's payload have the required attributes
+    // checks if the event's payload have the required attributes
     var payload = _validatePayload(event);
 
     // extracting the attributes zone and label (key and value) from the payload 
     var zone = payload.zone;
     const label = payload.label;
 
-    // get the current GCP project Id
+    // gets the current GCP project Id
     const projectId = await instancesClient.getProjectId();
 
     // setting the recommender type
@@ -55,10 +55,11 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
     // getting the list of GCE instances in the GCP zone specified by 'zone' and that are labeled with 'label'
     const gceInstances = await getVMs(projectId, label, zone);
 
-    // getting the list of "machine type"  recommendations available on a specific 'zone' 
+    // getting the list of "machine type"  recommendations available on a specific GCP 'zone' 
     const recommendations = await listRecommendations(projectId, recommenderId, zone);
 
-    // if we have GCE instance that are labeled as eligible for auto-sizing, and if we have sizing recommendations available, then we need to apply them
+    // if we have GCE instance that are labeled as eligible for auto-sizing, 
+    // and if we have sizing recommendations available, then we need to apply them
     if (gceInstances.length > 0 && recommendations.length > 0) {
 
       var instanceNames = [];
@@ -73,34 +74,32 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
       // loop through the sizing recommendations and apply them to the corresponding GCE instances
       for (const recommendation of recommendations) {
 
-        // extracting the instance name from the sizing recommendation message.
-        var resource = recommendation.content.operationGroups[0].operations[0].resource
-        var instanceName = resource.substring(resource.lastIndexOf("/") + 1, resource.length);
+        // reading insight(s) from the machine-type recommendation object
+        var insight = recommendation.content.operationGroups[0];
+        var currentResource = insight.operations[0].resource;
+        var recommendedResource = insight.operations[1].value.stringValue;
 
-        // check if the GCE instance in the sizing recommendation is elligible for auto-sizing
+        var instanceName = currentResource.substring(currentResource.lastIndexOf("/") + 1, currentResource.length);
+
+        // check if the GCE instance is eligible for auto-sizing
         if (instanceNames.includes(instanceName)) {
 
-          // NOTE: unfortunately, the recommender API doesn't provide a structured output for the recommended machine type, hence extracting it from the description.
-          var description = recommendation.description;
-          var startIndex = description.indexOf("from");
-          var endIndex = description.indexOf("to");
+          var pattern = insight.operations[0].valueMatcher.matchesPattern; // Example of pattern format ".*zones/us-central1-a/machineTypes/e2-medium"
 
-          var current_machine_type = description.substring(startIndex + 4, endIndex - 1).trim();
-          var recommended_machine_type = description.substring(endIndex + 3, description.length - 1).trim();
-          var newInstanceType = "zones/" + zone + "/machineTypes/" + recommended_machine_type;
-
-          console.log("Current instance type: ---->"+current_machine_type);
-          console.log("Recommended instance type: ---->"+recommended_machine_type);
-          console.log("New Machine type =====> "+newInstanceType);
-
+          // reading the recommended machine type
+          var current_machine_type = pattern.substring(pattern.lastIndexOf("/") + 1, pattern.length).trim();
+          var recommended_machine_type = recommendedResource.substring(recommendedResource.lastIndexOf("/") + 1, recommendedResource.length).trim();
 
           // stopping the GCE instance: the VM needs to be in the "TREMINATED" state before changing the machine type.
           console.log("Stopping the GCE instance " + instanceName);
           await stopInstance(projectId, zone, instanceName);
 
           // applying the sizing recommendation by changing the machine type to the recommended one.
-          console.log("Trying to apply sizing recommendation for instance " + instanceName + " by chaning machine type from " + current_machine_type + " to " + recommended_machine_type);
-          await applySizing(projectId, zone, instanceName, newInstanceType);
+          console.log("Trying to apply sizing recommendation for instance " + instanceName + 
+                      " by chaning machine type from " + current_machine_type + 
+                      " to " + recommended_machine_type);
+
+          await applySizing(projectId, zone, instanceName, recommendedResource);
 
           // restarting the instance
           console.log("Restarting the GCE instance " + instanceName);
@@ -116,7 +115,8 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
 
     } else {
 
-      const message = "Nothing to do here: either there is no machine type recommendations, or there is no GCE instances eligible for auto-sizing in the specified zone (" + zone + ")";
+      const message = "Nothing to do here: either there is no machine type recommendations,"+"\n"+
+                      "or there is no GCE instances eligible for auto-sizing in the specified zone (" + zone + ")";
       console.log(message);
       callback(null, message);
     }
@@ -132,7 +132,7 @@ exports.applySizingRecommendationsFct = async (event, context, callback) => {
 };
 
 /**
- * Returns all VMs that have a specific label and that are deployed in a specific GCP zone.
+ * Returns all VMs that have a specific label, and that are deployed in a specific GCP zone.
  */
 async function getVMs(projectId, label, zone) {
 
