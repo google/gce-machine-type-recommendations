@@ -1,36 +1,34 @@
 # Introduction
+
+Google Compute Engine (GCE)  provides [machine-type recommendations](https://cloud.google.com/compute/docs/instances/apply-machine-type-recommendations-for-instances) to customers to optimize their virtual machine (VM) instances. These recommendations are generated automatically based on system metrics gathered by the Cloud Monitoring service over the previous 8 days.
+
 This tutorial explains a cost-effective and serverless approach for automating the process of applying machine-type recommendations 
 to specific GCE instances.
 
-The key idea is to regularly check if GCE machine type recommendations are available and apply them to the Compute Engine instances(VMs) that have a specific label.
+The idea is to regularly check if GCE machine type recommendations are available and apply them to the Compute Engine instances(VMs) that have a specific **label**.
 
-```
-By automatically applying machine-type recommendations GCP customers can save money 
-while also saving time for having to do this task manually for each GCE instance.
-```
 
-In this tutorial we will make use of the following GCP services:
+In this tutorial, we will make use of the following GCP services:
 - Cloud Scheduler
 - Pub/Sub
 - Cloud Functions (2nd generation)
 - Google Compute Engine (GCE)
 
+
 # Pre-requisites
-Before you get started you : 
 - You need a GCP project with billing enabled.
 
-# How to use this solution
-
+# How to use this code
+Before you get started you need to have a few VMs in your GCP environment that have machine-type recommendations available. If not, you will create them as part of this tutorial.
 
 **1. Creating GCE instances if they don't already exist**
 
-- You need to have at least one VM (or more) in your project that has machine-type recommendations shown in the UI. 
+- In caase you have at least one VM (or more) in your project that have machine-type recommendations shown in the UI. 
+Choose the VMs for which you want to apply the machine-type recommendation automatically by **labeling** them (for example label:autosize=true). Applying labels can be enforced during the creation of the VM instances through Infrastructure-as-Code(IaC).
 
-In this case choose the VMs for which you want to apply the machine-type recommendation automatically by labeling them (for example label:autosize=true). In the future, applying labels can be enforced during the creation of the VM instances through Infrastructure-as-Code (IaC).
+- If you don't already have VMs with machine-type recommendations, you can create one or more small to medium VMs and let them run "idle" for a while until the machine-type recommendation(s) become visible in the UI.
 
-- If you don't already have VMs with machine-type recommendations, you can create one or more small (oversized) VMs and let them run "idle" for a while until the machine-type recommendation(s) is visible in the UI.
-
-- In our case, we will create two VMs test-instance-1 and test-instance-2 in the GCP zone us-central1-a and we will add a label **auto-size=true** to the test-instance-1.
+- In our case, we will create two VMs test-instance-1 and test-instance-2 in the **us-central1-a** GCP zone, and we will add a label **auto-size=true** only to the test-instance-1.
 
 ```
 gcloud compute instances create test-instance-1 --zone=us-central1-a --machine-type=e2-medium --labels=autosize=true 
@@ -40,8 +38,8 @@ gcloud compute instances create test-instance-1 --zone=us-central1-a --machine-t
 gcloud compute instances create test-instance-2 --zone=us-central1-a --machine-type=e2-medium  
 ```
   
-  You will need to let these instances run **idle** for a while until the machine-type recommendations. 
-  
+
+You will need to let these instances run **idle** for a while until the machine-type recommendations become visible in the GCP Console UI.
   
   
   **2. Create a Pub/Sub topic**
